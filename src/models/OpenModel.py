@@ -12,6 +12,7 @@ from termcolor import colored
 # Load model's role
 load_dotenv('config/open.env')
 
+# with open(f'config/roles/{getenv('ROLE')}.txt', 'r', encoding='UTF-8') as file:
 with open('config/roles/role.txt', 'r', encoding='UTF-8') as file:
     role = file.read()
 
@@ -73,8 +74,9 @@ class OpenModel:
                     print(colored(f"[{i+1} File] Success", 'light_green'))
                 except:
                     correctJSON = False
-                    print(colored(f"[{i+1} File] Corrupted JSON", 'red'))
                     count_bags += 1
+                    OpenModel._log(resp, err=True)
+                    print(colored(f"[{i+1} File] Corrupted JSON", 'red'))
                 if count_bags > 10:
                     break
 
@@ -83,36 +85,13 @@ class OpenModel:
 
         with open(f'data/{current_datetime}.json', 'w', encoding='UTF-8') as file_json:
             # Используем глубокое слияние для объединения всех JSON-ответов в один
-            merged_json = self._deep_merge_json(responses)
+            merged_json = DocumentFormatter.deep_merge_json(responses)
             json.dump(merged_json, file_json, ensure_ascii=False)
 
     @staticmethod
-    def _log(content):
+    def _log(content, err=False):
         """ saves the model's responses """
         current_datetime = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         
-        with open(f'logs/log_{current_datetime}.txt', 'w', encoding='UTF-8') as log:
+        with open(f'logs/{'err/' if err else ''}log_{current_datetime}.txt', 'w', encoding='UTF-8') as log:
             log.write(content)
-    
-    @staticmethod
-    def _deep_merge_json(json_list):
-        """deep merge list json objects"""
-        merged = {}
-
-        for json_obj in json_list:
-            merged = OpenModel._merge_json(merged, json_obj)
-
-        return merged
-
-    @staticmethod
-    def _merge_json(json1, json2):
-        """deep merge two json objects"""
-        merged = json1.copy()
-
-        for key, value in json2.items():
-            if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
-                merged[key] = OpenModel._merge_json(merged[key], value)
-            else:
-                merged[key] = value
-
-        return merged
